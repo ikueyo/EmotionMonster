@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情緒怪獸製造機</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:,">
+    <script>
+        window.onerror = function (msg, url, line, col, error) {
+            const loader = document.getElementById('loader');
+            if (loader) {
+                loader.innerHTML = `
+                    <div style="padding: 20px; color: #ff4444; background: rgba(0,0,0,0.9); border-radius: 8px; text-align: left;">
+                        <h3 style="margin-top:0">⚠️ 發生錯誤</h3>
+                        <p>${msg}</p>
+                        <small>位置: ${url ? url.split('/').pop() : 'inline'}:${line}</small>
+                    </div>
+                `;
+            }
+        };
+        window.addEventListener('unhandledrejection', e => {
+            const loader = document.getElementById('loader');
+            if (loader) {
+                loader.innerHTML = `
+                    <div style="padding: 20px; color: #ff4444; background: rgba(0,0,0,0.9); border-radius: 8px; text-align: left;">
+                         <h3 style="margin-top:0">⚠️ 載入失敗</h3>
+                        <p>${e.reason ? e.reason.message || e.reason : 'Unknown Promise Error'}</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+    <style>
+        /* --- 開場選擇介面 --- */
+        #selection-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(246, 246, 250, 0.98);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s;
+        }
+
+        .selection-title {
+            font-size: 2.2rem;
+            color: #444;
+            font-weight: 800;
+            margin-bottom: 50px;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .card-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 900px;
+        }
+
+        .monster-card {
+            width: 180px;
+            height: 240px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+            border: 4px solid transparent;
+        }
+
+        .monster-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(126, 200, 227, 0.25);
+            border-color: #89d6f1;
+        }
+
+        .card-icon {
+            font-size: 70px;
+            margin-bottom: 15px;
+        }
+
+        .card-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .card-desc {
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        #ui-sidebar,
+        #ui-header {
+            display: none;
+            /* Initially hidden */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="selection-screen">
+        <div class="selection-title">選擇你的怪獸素坯</div>
+        <div class="card-container">
+            <div class="monster-card" data-type="waterdrop">
+                <div class="card-icon">💧</div>
+                <div class="card-name">水滴怪</div>
+                <div class="card-desc">上尖下寬的穩定感</div>
+            </div>
+            <div class="monster-card" data-type="peanut">
+                <div class="card-icon">🥜</div>
+                <div class="card-name">長條怪</div>
+                <div class="card-desc">高高瘦瘦的圓潤感</div>
+            </div>
+            <div class="monster-card" data-type="cube">
+                <div class="card-icon">🧊</div>
+                <div class="card-name">方糖怪</div>
+                <div class="card-desc">上窄下寬的梯形方糖</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loader">零件庫存整理中...</div>
+
+    <div id="ui-sidebar">
+        <span class="tool-group-title">五官</span>
+        <div class="tool-btn" id="btn-eye" data-type="eye">
+            👀<span class="btn-label">大眼睛</span>
+        </div>
+        <div class="tool-btn" id="btn-mouth" data-type="mouth">
+            👄<span class="btn-label">小尖牙</span>
+        </div>
+        <div class="tool-btn" id="btn-ear" data-type="ear">
+            👂<span class="btn-label">耳朵</span>
+        </div>
+        <div class="tool-btn" id="btn-horn" data-type="horn">
+            🦄<span class="btn-label">獨角</span>
+        </div>
+
+        <span class="tool-group-title" style="margin-top: 10px;">肢體</span>
+        <div class="tool-btn" id="btn-arm" data-type="arm">
+            🖐️<span class="btn-label">小手手</span>
+        </div>
+        <div class="tool-btn" id="btn-leg" data-type="leg">
+            👣<span class="btn-label">小腳丫</span>
+        </div>
+
+        <div style="flex-grow: 1;"></div>
+        <div class="tool-btn" id="btn-scan" style="background: #f8f8fc; cursor: pointer;">
+            📷<span class="btn-label">皮膚掃描</span>
+        </div>
+        <div class="tool-btn" id="btn-save" style="background: #f8f8fc; cursor: pointer; margin-top: 10px;">
+            💾<span class="btn-label">保存怪獸</span>
+        </div>
+    </div>
+
+    <div id="ui-header">
+        <h1>情緒變形記</h1>
+        <p>✨ 拖曳五官與四肢到怪獸身上，放開後可旋轉微調 ✨</p>
+    </div>
+
+    <!-- 底部控制面板 -->
+    <div id="control-panel">
+        <div class="panel-row">
+            <span class="label-text">轉動</span>
+            <input type="range" id="rotate-y" min="-180" max="180" value="0">
+        </div>
+        <div class="panel-row">
+            <span class="label-text">開合</span>
+            <input type="range" id="rotate-z" min="-60" max="60" value="0">
+        </div>
+        <div class="panel-row">
+            <span class="label-text">大小</span>
+            <input type="range" id="scale-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+        </div>
+        <button id="delete-btn">移除這個部件</button>
+    </div>
+
+    <!-- 這裡將來會放 Camera UI -->
+
+    <!-- Camera Overlay -->
+    <div id="camera-overlay">
+        <!-- Video Element will be appended by JS or just use the same one -->
+        <div id="camera-guide"></div>
+
+        <div id="camera-controls">
+            <button id="btn-close-cam" class="cam-btn">✕</button>
+            <button id="btn-capture" class="cam-btn">⚪</button>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

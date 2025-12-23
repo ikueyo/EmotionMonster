@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情緒怪獸創作圖紙 (A4列印版)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+
+        /* 設定列印頁面為 A4 */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            /* 螢幕預覽時留點邊距 */
+            background-color: #555;
+            /* 深色背景更能凸顯白紙 */
+            font-family: 'Noto Sans TC', sans-serif;
+            /* 修正置中問題：改用 text-align 而非 flex */
+            text-align: center;
+            min-width: 220mm;
+            /* 確保有足夠寬度顯示 A4 */
+        }
+
+        /* A4 紙張本體 */
+        .sheet {
+            position: relative;
+            width: 210mm;
+            height: 296mm;
+            /* A4 高度 */
+            background-color: white;
+            margin: 0 auto;
+            /* 水平置中 */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            box-sizing: border-box;
+            padding: 20mm;
+            /* 紙張內邊距 */
+
+            /* 內容排版 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: left;
+            /* 內容文字靠左 */
+        }
+
+        /* 列印模式樣式覆蓋 */
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+                min-width: auto;
+            }
+
+            .sheet {
+                width: 100%;
+                height: 100%;
+                box-shadow: none;
+                margin: 0;
+                /* 列印時通常印表機有物理邊距，這裡保持 padding 確保內容安全 */
+            }
+        }
+
+        /* --- 以下為設計元素 --- */
+
+        .header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            letter-spacing: 2px;
+        }
+
+        .info-fields {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .field {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .line {
+            display: inline-block;
+            border-bottom: 1px solid #555;
+            height: 1px;
+        }
+
+        /* 繪圖區容器 */
+        .drawing-area {
+            flex-grow: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* 圓形畫布 */
+        .circle-canvas {
+            width: 160mm;
+            height: 160mm;
+            border: 3mm solid #333;
+            /* 粗框 */
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            /* 確保裡面是白的 */
+        }
+
+        /* 輔助十字線 (極淡) */
+        .circle-canvas::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background-color: #f0f0f0;
+        }
+
+        .circle-canvas::after {
+            content: '';
+            position: absolute;
+            width: 1px;
+            height: 100%;
+            background-color: #f0f0f0;
+        }
+
+        /* 定位標記 (角落) */
+        .marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: #000;
+            border-style: solid;
+        }
+
+        .tl {
+            top: -15px;
+            left: -15px;
+            border-width: 3px 0 0 3px;
+        }
+
+        .tr {
+            top: -15px;
+            right: -15px;
+            border-width: 3px 3px 0 0;
+        }
+
+        .bl {
+            bottom: -15px;
+            left: -15px;
+            border-width: 0 0 3px 3px;
+        }
+
+        .br {
+            bottom: -15px;
+            right: -15px;
+            border-width: 0 3px 3px 0;
+        }
+
+        /* 提示文字 */
+        .prompt {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+        }
+
+        .prompt h2 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .prompt p {
+            font-size: 13px;
+            margin: 2px 0;
+        }
+
+        .footer {
+            margin-top: auto;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            color: #aaa;
+            padding-top: 15px;
+            border-top: 1px dashed #ddd;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sheet">
+        <!-- 頁首 -->
+        <div class="header">
+            <div class="title">情緒變形記</div>
+            <div class="info-fields">
+                <div class="field">班級:<span class="line" style="width: 50px;"></span></div>
+                <div class="field">姓名:<span class="line" style="width: 80px;"></span></div>
+            </div>
+        </div>
+
+        <!-- 繪圖區 -->
+        <div class="drawing-area">
+            <div class="circle-canvas">
+                <!-- 標記 -->
+                <div class="marker tl"></div>
+                <div class="marker tr"></div>
+                <div class="marker bl"></div>
+                <div class="marker br"></div>
+
+                <span
+                    style="position: absolute; color: #e0e0e0; font-size: 12px; transform: translateY(75mm); pointer-events: none;">
+                    ▼ 這裡是怪獸的肚子 ▼
+                </span>
+            </div>
+        </div>
+
+        <!-- 引導語 -->
+        <div class="prompt">
+            <h2>捕捉你的心情色彩</h2>
+            <p>請在上面的大圓圈裡，畫出你現在心情的顏色和花紋。</p>
+            <p>只要把圓圈圈填滿就可以了，不用畫出具體的東西喔！</p>
+        </div>
+
+        <!-- 頁腳 -->
+        <div class="footer">
+            課程單元：情緒變形記 | 結合《安妮新聞》Vol.10 與 互動科技 | Emotion Monster Maker
+        </div>
+    </div>
+
+</body>
+
+</html>

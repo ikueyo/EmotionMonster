@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情緒怪獸製造機 - 梯形方糖版</title>
+    <style>
+        /* 基礎樣式 */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f6f6fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* --- 開場選擇介面 --- */
+        #selection-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(246, 246, 250, 0.98);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s;
+        }
+
+        .selection-title {
+            font-size: 2.2rem;
+            color: #444;
+            font-weight: 800;
+            margin-bottom: 50px;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .card-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 900px;
+        }
+
+        .monster-card {
+            width: 180px;
+            height: 240px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+            border: 4px solid transparent;
+        }
+
+        .monster-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(126, 200, 227, 0.25);
+            border-color: #89d6f1;
+        }
+
+        .card-icon {
+            font-size: 70px;
+            margin-bottom: 15px;
+        }
+
+        .card-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .card-desc {
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        /* --- 左側工具列 --- */
+        #ui-sidebar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            bottom: 20px;
+            width: 110px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(15px);
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+            display: none;
+            /* 選擇後顯示 */
+            flex-direction: column;
+            align-items: center;
+            padding-top: 25px;
+            gap: 15px;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            overflow-y: auto;
+        }
+
+        #ui-sidebar::-webkit-scrollbar {
+            width: 0;
+        }
+
+        .tool-group-title {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 2px;
+            font-weight: 700;
+            width: 100%;
+            text-align: center;
+        }
+
+        .tool-btn {
+            width: 76px;
+            height: 76px;
+            border-radius: 20px;
+            background-color: #ffffff;
+            border: 2px solid #f0f0f5;
+            cursor: grab;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.03);
+            touch-action: none;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .tool-btn:active {
+            cursor: grabbing;
+            transform: scale(0.92);
+            border-color: #7ec8e3;
+        }
+
+        .tool-btn:hover {
+            border-color: #7ec8e3;
+            background-color: #f8fbff;
+            transform: translateY(-2px);
+        }
+
+        .btn-label {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        /* --- 頂部標題 --- */
+        #ui-header {
+            position: absolute;
+            top: 30px;
+            left: 160px;
+            pointer-events: none;
+            color: #555;
+            z-index: 5;
+            display: none;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 800;
+            color: #444;
+            letter-spacing: -0.5px;
+        }
+
+        p {
+            margin: 8px 0 0 0;
+            font-size: 1rem;
+            color: #666;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 6px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            backdrop-filter: blur(5px);
+        }
+
+        /* --- 底部控制面板 --- */
+        #control-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 24px 30px;
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            z-index: 20;
+            backdrop-filter: blur(15px);
+            width: 320px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from {
+                transform: translateX(-50%) scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .panel-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: 15px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #eef0f5;
+            border-radius: 10px;
+            outline: none;
+            border: 1px solid #e0e0e0;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            background: #7ec8e3;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #65badd;
+        }
+
+        .label-text {
+            font-size: 14px;
+            color: #555;
+            font-weight: 700;
+            width: 45px;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        #delete-btn {
+            background: #ff8e8e;
+            color: white;
+            border: none;
+            padding: 12px 0;
+            border-radius: 16px;
+            font-weight: bold;
+            font-size: 15px;
+            width: 100%;
+            margin-top: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(255, 142, 142, 0.3);
+        }
+
+        #delete-btn:hover {
+            background: #ff6b6b;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 開場選擇 -->
+    <div id="selection-screen">
+        <div class="selection-title">選擇你的怪獸素坯</div>
+        <div class="card-container">
+            <div class="monster-card" onclick="selectBody('waterdrop')">
+                <div class="card-icon">💧</div>
+                <div class="card-name">水滴怪</div>
+                <div class="card-desc">上尖下寬的穩定感</div>
+            </div>
+            <div class="monster-card" onclick="selectBody('peanut')">
+                <div class="card-icon">🥜</div>
+                <div class="card-name">長條怪</div>
+                <div class="card-desc">高高瘦瘦的圓潤感</div>
+            </div>
+            <div class="monster-card" onclick="selectBody('cube')">
+                <div class="card-icon">🧊</div>
+                <div class="card-name">方糖怪</div>
+                <div class="card-desc">上窄下寬的梯形方糖</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI -->
+    <div id="ui-sidebar">
+        <span class="tool-group-title">五官</span>
+        <div class="tool-btn" id="btn-eye" data-type="eye">👀<span class="btn-label">大眼睛</span></div>
+        <div class="tool-btn" id="btn-mouth" data-type="mouth">👄<span class="btn-label">美唇</span></div>
+        <span class="tool-group-title" style="margin-top: 10px;">肢體</span>
+        <div class="tool-btn" id="btn-arm" data-type="arm">🖐️<span class="btn-label">小手手</span></div>
+        <div class="tool-btn" id="btn-leg" data-type="leg">👣<span class="btn-label">小腳丫</span></div>
+        <div style="flex-grow: 1;"></div>
+        <div class="tool-btn" style="background: #f8f8fc; cursor: default; opacity: 0.6;">📷<span
+                class="btn-label">掃描</span></div>
+    </div>
+
+    <div id="ui-header">
+        <h1>情緒變形記</h1>
+        <p>✨ 拖曳配件，創造你的專屬怪獸 ✨</p>
+    </div>
+
+    <div id="control-panel">
+        <div class="panel-row">
+            <span class="label-text">轉動</span>
+            <input type="range" id="rotate-y" min="-180" max="180" value="0">
+        </div>
+        <div class="panel-row">
+            <span class="label-text">開合</span>
+            <input type="range" id="rotate-z" min="-60" max="60" value="0">
+        </div>
+        <button id="delete-btn">移除這個部件</button>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+        let scene, camera, renderer, controls;
+        let monsterGroup, bodyMesh;
+        let raycaster, mouse;
+        const clock = new THREE.Clock();
+
+        const MONSTER_COLOR = 0x89d6f1;
+        const PENETRATION_DEPTH = 0.15;
+
+        const TOY_MATERIAL_PARAMS = {
+            roughness: 0.6, metalness: 0.0, flatShading: false,
+        };
+
+        const state = {
+            isDraggingNew: false, dragType: null, ghostPart: null,
+            selectedPart: null, selectedInner: null, isEditing: false,
+            bodyType: 'waterdrop'
+        };
+
+        const container = document.getElementById('canvas-container');
+        const selectionScreen = document.getElementById('selection-screen');
+        const uiSidebar = document.getElementById('ui-sidebar');
+        const uiHeader = document.getElementById('ui-header');
+        const controlPanel = document.getElementById('control-panel');
+        const deleteBtn = document.getElementById('delete-btn');
+        const sliderY = document.getElementById('rotate-y');
+        const sliderZ = document.getElementById('rotate-z');
+
+        window.selectBody = function (type) {
+            state.bodyType = type;
+            selectionScreen.style.opacity = '0';
+            setTimeout(() => {
+                selectionScreen.style.display = 'none';
+                uiSidebar.style.display = 'flex';
+                uiHeader.style.display = 'block';
+                createMonster(type);
+            }, 500);
+        };
+
+        init();
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf6f6fa);
+            scene.fog = new THREE.Fog(0xf6f6fa, 12, 28);
+
+            const aspect = container.clientWidth / container.clientHeight;
+            camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100);
+            camera.position.set(0, 1.5, 8);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.SoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffeebb, 1.2);
+            scene.add(hemiLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            dirLight.position.set(5, 8, 5); dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.radius = 5; dirLight.shadow.bias = -0.0001;
+            scene.add(dirLight);
+            const rimLight = new THREE.SpotLight(0xffffff, 0.4);
+            rimLight.position.set(-5, 5, -5); rimLight.lookAt(0, 0, 0);
+            scene.add(rimLight);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; controls.dampingFactor = 0.05;
+            controls.target.set(0, 0.5, 0);
+
+            const shadowGeo = new THREE.CircleGeometry(5, 64);
+            const shadowMat = new THREE.ShadowMaterial({ opacity: 0.1 });
+            const shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
+            shadowPlane.rotation.x = -Math.PI / 2;
+            shadowPlane.position.y = -1.3;
+            shadowPlane.receiveShadow = true;
+            scene.add(shadowPlane);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            window.addEventListener('resize', onWindowResize);
+            setupInteractions();
+            animate();
+        }
+
+        function createMonster(type) {
+            monsterGroup = new THREE.Group();
+            scene.add(monsterGroup);
+
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: MONSTER_COLOR,
+                ...TOY_MATERIAL_PARAMS
+            });
+
+            let bodyGeo;
+
+            if (type === 'waterdrop') {
+                // --- A. 水滴型 ---
+                bodyGeo = new THREE.SphereGeometry(1.2, 64, 64);
+                const pos = bodyGeo.attributes.position;
+                const v = new THREE.Vector3();
+                for (let i = 0; i < pos.count; i++) {
+                    v.fromBufferAttribute(pos, i);
+                    let scale = 1.0;
+                    if (v.y > 0) scale = 1.0 - (v.y * 0.45);
+                    else scale = 1.0 + (Math.abs(v.y) * 0.15);
+                    scale = Math.max(0.1, scale);
+                    v.x *= scale; v.z *= scale;
+                    pos.setXYZ(i, v.x, v.y, v.z);
+                }
+                bodyGeo.computeVertexNormals();
+
+            } else if (type === 'peanut') {
+                // --- B. 長條/花生型 ---
+                bodyGeo = new THREE.SphereGeometry(1.1, 64, 64);
+                const pos = bodyGeo.attributes.position;
+                const v = new THREE.Vector3();
+                for (let i = 0; i < pos.count; i++) {
+                    v.fromBufferAttribute(pos, i);
+                    v.y *= 1.4; // 拉長
+                    const normY = v.y / 1.4;
+                    let widthScale = 0.85 + Math.pow(Math.abs(normY), 2.2) * 0.25;
+                    v.x *= widthScale; v.z *= widthScale;
+                    pos.setXYZ(i, v.x, v.y, v.z);
+                }
+                bodyGeo.computeVertexNormals();
+
+            } else if (type === 'cube') {
+                // --- C. 梯形扁方糖 (Tapered Flat Cube) ---
+                // 基礎: 寬 1.6, 高 2.2, 深 1.0, 圓角 0.4
+                // 增加分段數 segments=16 讓變形更滑順
+                bodyGeo = new RoundedBoxGeometry(1.6, 2.2, 1.0, 16, 0.4);
+
+                // 頂點變形：讓頭端(Y>0)收窄
+                const pos = bodyGeo.attributes.position;
+                const v = new THREE.Vector3();
+                for (let i = 0; i < pos.count; i++) {
+                    v.fromBufferAttribute(pos, i);
+
+                    // 從中間偏下開始，越往上越收斂
+                    if (v.y > -0.5) {
+                        // 高度係數：從 0.0 (y=-0.5) 到約 1.0 (y=1.1)
+                        const factor = (v.y + 0.5) / 1.6;
+
+                        // X軸縮放：頂端縮到原來的 75%
+                        const scaleX = 1.0 - (factor * 0.25);
+
+                        // Z軸縮放：頂端縮到原來的 85% (不要縮太多以免變太薄)
+                        const scaleZ = 1.0 - (factor * 0.15);
+
+                        v.x *= scaleX;
+                        v.z *= scaleZ;
+                    }
+                    pos.setXYZ(i, v.x, v.y, v.z);
+                }
+                bodyGeo.computeVertexNormals();
+            }
+
+            bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+            bodyMesh.name = "Body";
+            bodyMesh.userData.isBody = true;
+            bodyMesh.castShadow = true;
+            bodyMesh.receiveShadow = true;
+            monsterGroup.add(bodyMesh);
+        }
+
+        // --- 部件生成 (保持不變) ---
+
+        function createLimbPart(type, isGhost) {
+            const outerGroup = new THREE.Group();
+            const innerGroup = new THREE.Group();
+            outerGroup.add(innerGroup);
+
+            const mat = new THREE.MeshStandardMaterial({
+                color: MONSTER_COLOR,
+                ...TOY_MATERIAL_PARAMS,
+                transparent: isGhost, opacity: isGhost ? 0.5 : 1.0,
+                emissive: 0x000000
+            });
+
+            if (type === 'eye') {
+                const scleraMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0, transparent: isGhost, opacity: isGhost ? 0.5 : 1, emissive: 0x000000 });
+                const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.25, 32, 32), scleraMat);
+                sclera.position.y = 0.2; sclera.userData.canGlow = true;
+                const pupilMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.1, transparent: isGhost, opacity: isGhost ? 0.5 : 1, emissive: 0x000000 });
+                const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), pupilMat);
+                pupil.position.y = 0.42; pupil.scale.set(1, 0.3, 1);
+                const highlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: isGhost, opacity: isGhost ? 0.5 : 0.8 });
+                const highlight = new THREE.Mesh(new THREE.CircleGeometry(0.04, 16), highlightMat);
+                highlight.position.set(0.08, 0.45, 0.08); highlight.rotation.x = -Math.PI / 2;
+                innerGroup.add(sclera, pupil, highlight); sclera.castShadow = true;
+
+            } else if (type === 'mouth') {
+                const lipColor = 0xe63e62;
+                const lipMat = new THREE.MeshStandardMaterial({ color: lipColor, roughness: 0.4, transparent: isGhost, opacity: isGhost ? 0.5 : 1, emissive: 0x000000 });
+                const upperLipShape = new THREE.Shape(); upperLipShape.moveTo(-0.12, 0); upperLipShape.quadraticCurveTo(-0.06, 0.08, 0, 0.03); upperLipShape.quadraticCurveTo(0.06, 0.08, 0.12, 0); upperLipShape.quadraticCurveTo(0, 0.02, -0.12, 0);
+                const extrudeSettings = { steps: 1, depth: 0.04, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 5 };
+                const upperLip = new THREE.Mesh(new THREE.ExtrudeGeometry(upperLipShape, extrudeSettings), lipMat);
+                upperLip.rotation.x = -Math.PI / 2; upperLip.position.y = PENETRATION_DEPTH + 0.03; upperLip.position.z = 0.01; upperLip.userData.canGlow = true;
+                const lowerLipShape = new THREE.Shape(); lowerLipShape.moveTo(-0.12, -0.01); lowerLipShape.quadraticCurveTo(0, 0.01, 0.12, -0.01); lowerLipShape.quadraticCurveTo(0, -0.1, -0.12, -0.01);
+                const lowerLip = new THREE.Mesh(new THREE.ExtrudeGeometry(lowerLipShape, extrudeSettings), lipMat);
+                lowerLip.rotation.x = -Math.PI / 2; lowerLip.position.y = PENETRATION_DEPTH + 0.03; lowerLip.position.z = 0.01; lowerLip.userData.canGlow = true;
+                innerGroup.add(upperLip, lowerLip);
+
+            } else if (type === 'arm') {
+                const armGeo = new THREE.CylinderGeometry(0.08, 0.12, 0.6, 32); armGeo.translate(0, 0.3, 0);
+                const arm = new THREE.Mesh(armGeo, mat); arm.userData.canGlow = true;
+                const palm = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), mat); palm.position.y = 0.65; palm.scale.set(1, 0.8, 0.6); palm.userData.canGlow = true;
+                const fingers = new THREE.Group(); const fingerGeo = new THREE.CapsuleGeometry(0.035, 0.12, 4, 16);
+                const f2 = new THREE.Mesh(fingerGeo, mat); f2.position.set(0, 0.78, 0); fingers.add(f2);
+                const f1 = new THREE.Mesh(fingerGeo, mat); f1.position.set(-0.08, 0.75, 0); f1.rotation.z = 0.3; fingers.add(f1);
+                const f3 = new THREE.Mesh(fingerGeo, mat); f3.position.set(0.08, 0.75, 0); f3.rotation.z = -0.3; fingers.add(f3);
+                f1.userData.canGlow = true; f2.userData.canGlow = true; f3.userData.canGlow = true;
+                innerGroup.add(arm, palm, fingers); arm.castShadow = true; palm.castShadow = true;
+
+            } else if (type === 'leg') {
+                const legGeo = new THREE.CylinderGeometry(0.12, 0.16, 0.5, 32); legGeo.translate(0, 0.25, 0);
+                const leg = new THREE.Mesh(legGeo, mat); leg.userData.canGlow = true;
+                const foot = new THREE.Mesh(new THREE.SphereGeometry(0.2, 32, 32), mat); foot.position.y = 0.5; foot.position.z = 0.1; foot.scale.set(1, 0.7, 1.5); foot.userData.canGlow = true;
+                const toes = new THREE.Group(); const toeGeo = new THREE.SphereGeometry(0.08, 16, 16);
+                const t2 = new THREE.Mesh(toeGeo, mat); t2.position.set(0, 0.45, 0.4); toes.add(t2);
+                const t1 = new THREE.Mesh(toeGeo, mat); t1.position.set(-0.12, 0.45, 0.35); toes.add(t1);
+                const t3 = new THREE.Mesh(toeGeo, mat); t3.position.set(0.12, 0.45, 0.35); toes.add(t3);
+                t1.userData.canGlow = true; t2.userData.canGlow = true; t3.userData.canGlow = true;
+                innerGroup.add(leg, foot, toes); leg.castShadow = true; foot.castShadow = true;
+            }
+
+            outerGroup.userData = { type: type, isPart: true };
+            return outerGroup;
+        }
+
+        function setupInteractions() {
+            const bindBtn = (id, type) => {
+                const btn = document.getElementById(id);
+                const start = (e) => {
+                    e.preventDefault();
+                    if (state.isDraggingNew) return;
+                    state.isDraggingNew = true; state.dragType = type;
+                    state.ghostPart = createLimbPart(type, true);
+                    state.ghostPart.visible = false; scene.add(state.ghostPart);
+                    controls.enabled = false; deselect();
+                };
+                btn.addEventListener('mousedown', start); btn.addEventListener('touchstart', start, { passive: false });
+            };
+            bindBtn('btn-arm', 'arm'); bindBtn('btn-leg', 'leg'); bindBtn('btn-eye', 'eye'); bindBtn('btn-mouth', 'mouth');
+
+            container.addEventListener('mousemove', onMove);
+            container.addEventListener('touchmove', (e) => { e.preventDefault(); onMove(e.touches[0]); }, { passive: false });
+            container.addEventListener('mouseup', onEnd);
+            container.addEventListener('touchend', onEnd);
+            container.addEventListener('mousedown', onDown);
+            container.addEventListener('touchstart', (e) => onDown(e.touches[0]), { passive: false });
+            deleteBtn.addEventListener('click', () => { if (state.selectedPart) { monsterGroup.remove(state.selectedPart); deselect(); } });
+            sliderY.addEventListener('input', (e) => { if (state.selectedInner) state.selectedInner.rotation.y = parseInt(e.target.value) * (Math.PI / 180); });
+            sliderZ.addEventListener('input', (e) => { if (state.selectedInner) state.selectedInner.rotation.z = parseInt(e.target.value) * (Math.PI / 180); });
+        }
+
+        function getMouse(e) {
+            const rect = container.getBoundingClientRect();
+            return { x: ((e.clientX - rect.left) / rect.width) * 2 - 1, y: -((e.clientY - rect.top) / rect.height) * 2 + 1 };
+        }
+
+        function onDown(e) {
+            if (state.isDraggingNew) return;
+            const m = getMouse(e);
+            mouse.set(m.x, m.y);
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(monsterGroup.children, true);
+            let hitPart = null;
+            if (intersects.length > 0) {
+                let obj = intersects[0].object;
+                while (obj.parent && obj.parent !== monsterGroup) {
+                    if (obj.userData && obj.userData.isPart) { hitPart = obj; break; }
+                    obj = obj.parent;
+                }
+                if (!hitPart && obj.userData && obj.userData.isPart) hitPart = obj;
+            }
+            if (hitPart) { select(hitPart); state.isEditing = true; controls.enabled = false; } else { deselect(); }
+        }
+
+        function onMove(e) {
+            const m = getMouse(e); mouse.set(m.x, m.y);
+            if (state.isDraggingNew || state.isEditing) {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(bodyMesh);
+                if (intersects.length > 0) {
+                    const hit = intersects[0];
+                    const target = state.isDraggingNew ? state.ghostPart : state.selectedPart;
+                    if (target) {
+                        target.visible = true;
+                        const normal = hit.face.normal.clone();
+                        normal.transformDirection(bodyMesh.matrixWorld).normalize();
+                        const penetrationOffset = normal.clone().multiplyScalar(PENETRATION_DEPTH);
+                        const buriedPoint = hit.point.clone().sub(penetrationOffset);
+                        const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+                        if (state.isDraggingNew) {
+                            target.position.copy(buriedPoint); target.quaternion.copy(targetQuat);
+                        } else {
+                            const localPos = monsterGroup.worldToLocal(buriedPoint.clone());
+                            target.position.copy(localPos); target.quaternion.copy(targetQuat);
+                        }
+                    }
+                } else {
+                    if (state.isDraggingNew && state.ghostPart) state.ghostPart.visible = false;
+                }
+            }
+        }
+
+        function onEnd() {
+            if (state.isDraggingNew) {
+                if (state.ghostPart && state.ghostPart.visible) {
+                    const newPart = createLimbPart(state.dragType, false);
+                    monsterGroup.add(newPart);
+                    const worldPos = new THREE.Vector3(); const worldQuat = new THREE.Quaternion();
+                    state.ghostPart.getWorldPosition(worldPos); state.ghostPart.getWorldQuaternion(worldQuat);
+                    monsterGroup.worldToLocal(worldPos);
+                    const parentInverse = monsterGroup.quaternion.clone().invert();
+                    parentInverse.multiply(worldQuat);
+                    newPart.position.copy(worldPos); newPart.quaternion.copy(parentInverse);
+                    select(newPart);
+                }
+                if (state.ghostPart) scene.remove(state.ghostPart);
+                state.ghostPart = null; state.isDraggingNew = false; controls.enabled = true;
+            }
+            if (state.isEditing) { state.isEditing = false; controls.enabled = true; }
+        }
+
+        function select(part) {
+            if (state.selectedPart === part) return;
+            if (state.selectedPart) deselect();
+            state.selectedPart = part; state.selectedInner = part.children[0];
+            controlPanel.style.display = 'flex';
+            const rotY = Math.round(state.selectedInner.rotation.y * (180 / Math.PI));
+            const rotZ = Math.round(state.selectedInner.rotation.z * (180 / Math.PI));
+            sliderY.value = rotY; sliderZ.value = rotZ;
+            part.traverse(c => { if (c.isMesh && c.userData.canGlow && c.material && c.material.emissive) { c.material.emissive.setHex(0xffffff); c.material.emissiveIntensity = 0.3; } });
+        }
+
+        function deselect() {
+            if (state.selectedPart) { state.selectedPart.traverse(c => { if (c.isMesh && c.material && c.material.emissive) { c.material.emissive.setHex(0x000000); c.material.emissiveIntensity = 0; } }); }
+            state.selectedPart = null; state.selectedInner = null; controlPanel.style.display = 'none';
+        }
+
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            const w = container.clientWidth; const h = container.clientHeight;
+            camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = clock.getElapsedTime();
+            controls.update();
+            if (monsterGroup) {
+                const s = 1 + Math.sin(t * 2) * 0.01;
+                monsterGroup.scale.set(s, s, s);
+                monsterGroup.position.y = Math.sin(t) * 0.03;
+            }
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+
+</html>

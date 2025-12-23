@@ -110,6 +110,29 @@
             display: none;
             /* Initially hidden */
         }
+
+        /* Camera Slider REMOVED */
+
+        /* Post-Scan Skin Control Panel */
+        #skin-control-panel {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            /* Right side */
+            background: rgba(255, 255, 255, 0.9);
+            padding: 24px 30px;
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            z-index: 20;
+            backdrop-filter: blur(15px);
+            width: 260px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
     </style>
 </head>
 
@@ -199,10 +222,32 @@
         <!-- Video Element will be appended by JS or just use the same one -->
         <div id="camera-guide"></div>
 
+        <!-- Slider Removed from here -->
+
         <div id="camera-controls">
             <button id="btn-close-cam" class="cam-btn">✕</button>
             <button id="btn-capture" class="cam-btn">⚪</button>
         </div>
+    </div>
+
+    <!-- 這裡放新的 Skin Control Panel -->
+    <div id="skin-control-panel">
+        <div class="panel-row">
+            <span class="label-text">亮度</span>
+            <input type="range" id="skin-brightness" min="0.2" max="3.0" step="0.1" value="1.0">
+        </div>
+        <div class="panel-row">
+            <span class="label-text">上下</span>
+            <input type="range" id="skin-offset-y" min="-0.5" max="0.5" step="0.01" value="0">
+        </div>
+        <div class="panel-row">
+            <span class="label-text">大小</span>
+            <input type="range" id="skin-scale" min="0.5" max="3.0" step="0.1" value="1.5">
+        </div>
+        <button id="skin-close-btn" style="
+            background: #89d6f1; color: white; border: none; padding: 10px; 
+            border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer;
+        ">完成調整</button>
     </div>
 
     <div id="canvas-container"></div>

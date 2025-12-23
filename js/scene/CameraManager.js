@@ -12,22 +12,58 @@ export class CameraManager {
         this.ctx = this.canvas.getContext('2d');
 
         this.texture = null;
+        this.offsetY = 0; // Vertical offset factor (-0.5 to 0.5)
     }
 
     async startCamera() {
         if (this.stream) return;
 
+        const getStream = async (constraints) => {
+            try {
+                return await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (error) {
+                return null;
+            }
+        };
+
         try {
-            const constraints = {
+            // Attempt 1: Ideal settings (Back Camera, High Res)
+            let stream = await getStream({
                 video: {
-                    facingMode: 'environment', // Use back camera on mobile
+                    facingMode: 'environment',
                     width: { ideal: 1280 },
                     height: { ideal: 1280 }
                 },
                 audio: false
-            };
+            });
 
-            this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+            // Attempt 2: Fallback to User Camera (Front) if Back fails
+            if (!stream) {
+                console.warn("Back camera not found, trying user camera...");
+                stream = await getStream({
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 1280 }
+                    },
+                    audio: false
+                });
+            }
+
+            // Attempt 3: Any video source
+            if (!stream) {
+                console.warn("User camera not found, trying any video source...");
+                stream = await getStream({
+                    video: true,
+                    audio: false
+                });
+            }
+
+            if (!stream) {
+                throw new Error("No video device found after all attempts.");
+            }
+
+            this.stream = stream;
             this.video.srcObject = this.stream;
 
             // Wait for video to be ready
@@ -59,8 +95,10 @@ export class CameraManager {
 
         const videoW = this.video.videoWidth;
         const videoH = this.video.videoHeight;
-        const screenW = window.innerWidth;
-        const screenH = window.innerHeight;
+
+        // Use client dims to avoid scrollbar issues
+        const screenW = document.documentElement.clientWidth;
+        const screenH = document.documentElement.clientHeight;
 
         const videoAspect = videoW / videoH;
         const screenAspect = screenW / screenH;
@@ -87,20 +125,26 @@ export class CameraManager {
 
         // Scale from screen coordinates to video buffer coordinates
         const scale = visibleH / screenH;
-        const captureSizeOnBuffer = guideSizeOnScreen * scale;
+        // Tightening factor: 0.9 -> Zoom in slightly to ensure we don't capture outside the circle
+        const captureSizeOnBuffer = guideSizeOnScreen * scale * 0.9;
 
         // Final capture coordinates on video buffer
         const sx = offX + (visibleW - captureSizeOnBuffer) / 2;
-        const sy = offY + (visibleH - captureSizeOnBuffer) / 2;
+
+        // Add Offset
+        let sy = offY + (visibleH - captureSizeOnBuffer) / 2 - (this.offsetY * visibleH);
+
+        // Clamp to safe area
+        // Ensure the capture box stays within video bounds
+        // sy must be >= 0
+        // sy + captureSize must be <= videoH (so sy <= videoH - captureSize)
+        sy = Math.max(0, Math.min(sy, videoH - captureSizeOnBuffer));
 
         this.canvas.width = 1024;
         this.canvas.height = 1024;
 
         // Draw the mapped area
         this.ctx.drawImage(this.video, sx, sy, captureSizeOnBuffer, captureSizeOnBuffer, 0, 0, 1024, 1024);
-
-        // Circular mask removed - using mirrored repeat wrapping instead for seamless coverage
-        // this._applyCircularMask(1024);
 
         if (this.texture) {
             this.texture.dispose();

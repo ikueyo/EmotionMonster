@@ -20,12 +20,20 @@ export class UIManager {
         this.cameraOverlay = document.getElementById('camera-overlay');
         this.btnCloseCam = document.getElementById('btn-close-cam');
         this.btnCapture = document.getElementById('btn-capture');
+
+        // Skin Control Panel
+        this.skinPanel = document.getElementById('skin-control-panel');
+        this.skinBrightness = document.getElementById('skin-brightness');
+        this.skinOffsetY = document.getElementById('skin-offset-y');
+        this.skinScale = document.getElementById('skin-scale');
+        this.skinCloseBtn = document.getElementById('skin-close-btn');
     }
 
     init() {
         this.setupTools();
         this.setupControlPanel();
         this.setupCameraUI();
+        this.setupSkinPanel();
         this.setupSelectionScreen();
 
         // Listen to Selection Changes to update UI
@@ -132,7 +140,45 @@ export class UIManager {
         });
     }
 
+    setupSkinPanel() {
+        // Brightness
+        this.skinBrightness.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            const bodyMesh = this.app.monsterManager.bodyMesh;
+            if (bodyMesh && bodyMesh.material) {
+                // Adjust color brightness. Base is 0xeeeeee (almost white).
+                // We'll just multiply scalar
+                bodyMesh.material.color.setScalar(val);
+            }
+        });
+
+        // Offset Y
+        this.skinOffsetY.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            const bodyMesh = this.app.monsterManager.bodyMesh;
+            if (bodyMesh && bodyMesh.material && bodyMesh.material.map) {
+                bodyMesh.material.map.offset.y = val;
+                // needsUpdate usually not needed for offset changes, but good to be safe if texture changes
+            }
+        });
+
+        // Scale (Repeat)
+        this.skinScale.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            const bodyMesh = this.app.monsterManager.bodyMesh;
+            if (bodyMesh && bodyMesh.material && bodyMesh.material.map) {
+                bodyMesh.material.map.repeat.set(val, val);
+            }
+        });
+
+        this.skinCloseBtn.addEventListener('click', () => {
+            this.interactionManager.deselect();
+        });
+    }
+
     setupCameraUI() {
+        // No slider logic for camera overlay anymore
+
         // Open Camera
         this.scanBtn.addEventListener('click', async () => {
             this.cameraOverlay.style.display = 'flex';
@@ -156,15 +202,23 @@ export class UIManager {
                     // Improve texture wrapping
                     texture.wrapS = THREE.MirroredRepeatWrapping;
                     texture.wrapT = THREE.MirroredRepeatWrapping;
-                    // Slightly scale down texture/scale up tiling to cover more area
+
+                    // Reset or Default values
                     texture.repeat.set(1.5, 1.5);
-                    texture.offset.set(-0.25, -0.25);
+                    this.skinScale.value = 1.5;
+
+                    texture.offset.set(0, 0);
+                    this.skinOffsetY.value = 0;
 
                     this.app.monsterManager.bodyMesh.material.map = texture;
                     this.app.monsterManager.bodyMesh.material.needsUpdate = true;
-                    // Set to a light base color instead of pure white 
-                    // to avoid black background if texture doesn't fully cover (though with repeat it should)
+
+                    // Reset Brightness
                     this.app.monsterManager.bodyMesh.material.color.setHex(0xeeeeee);
+                    this.skinBrightness.value = 1.0;
+
+                    // Automatically select body to show adjustments
+                    this.interactionManager.select(this.app.monsterManager.bodyMesh);
                 }
             }
             this.closeCamera();
@@ -180,19 +234,32 @@ export class UIManager {
     }
 
     updateUI(part) {
-        if (part) {
-            this.controlPanel.style.display = 'flex';
-            const inner = part.children[0];
-            const rotY = Math.round(inner.rotation.y * (180 / Math.PI));
-            const rotZ = Math.round(inner.rotation.z * (180 / Math.PI));
-            this.sliderY.value = rotY;
-            this.sliderZ.value = rotZ;
+        // Hide both initially
+        this.controlPanel.style.display = 'none';
+        this.skinPanel.style.display = 'none';
 
-            if (this.sliderScale) {
-                this.sliderScale.value = inner.scale.x;
+        if (part) {
+            if (part.userData && part.userData.isBody) {
+                // Body -> Skin Panel
+                this.skinPanel.style.display = 'flex';
+                // Sync UI with current state? 
+                // We did it in capture already. If re-selecting, might need to read values?
+                // For now, assuming state persists in UI elements or we don't mind.
+            } else {
+                // Part -> Control Panel
+                this.controlPanel.style.display = 'flex';
+
+                if (this.interactionManager.state.selectedInner) {
+                    const inner = this.interactionManager.state.selectedInner;
+                    const rotY = Math.round(inner.rotation.y * (180 / Math.PI));
+                    const rotZ = Math.round(inner.rotation.z * (180 / Math.PI));
+                    this.sliderY.value = rotY;
+                    this.sliderZ.value = rotZ;
+                    if (this.sliderScale) {
+                        this.sliderScale.value = inner.scale.x;
+                    }
+                }
             }
-        } else {
-            this.controlPanel.style.display = 'none';
         }
     }
 }

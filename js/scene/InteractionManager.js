@@ -78,7 +78,10 @@ export class InteractionManager {
 
         if (hitPart) {
             this.select(hitPart);
-            this.state.isEditing = true;
+            // Only set editing if it's a part, not body (body doesn't drag)
+            if (!hitPart.userData.isBody) {
+                this.state.isEditing = true;
+            }
         } else {
             this.deselect();
         }
@@ -233,7 +236,11 @@ export class InteractionManager {
         if (this.state.selectedPart) this.deselect();
 
         this.state.selectedPart = part;
-        this.state.selectedInner = part.children[0];
+        if (part.children && part.children.length > 0 && !part.userData.isBody) {
+            this.state.selectedInner = part.children[0];
+        } else {
+            this.state.selectedInner = null; // Body doesn't have rotatable inner part usually
+        }
 
         // Visual Highlight
         part.traverse(c => {
